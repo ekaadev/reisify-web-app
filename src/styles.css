@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/geist';
 
 @custom-variant dark (&:is(.dark *));
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -65,7 +65,7 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   --sea-ink: #d7ece8;
   --sea-ink-soft: #afcdc8;
   --lagoon: #60d7cf;
@@ -88,7 +88,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme='light']) {
     --sea-ink: #d7ece8;
     --sea-ink-soft: #afcdc8;
     --lagoon: #60d7cf;
