@@ -1,5 +1,19 @@
 {
   "permissions": {
     "deny": ["Bash(rm -rf *)"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath'); if [[ \"$f\" == *.ts || \"$f\" == *.tsx ]]; then bunx prettier --write \"$f\" 2>/dev/null; bunx eslint --fix \"$f\" 2>/dev/null; fi; true",
+            "statusMessage": "Formatting and linting..."
+          }
+        ]
+      }
+    ]
   }
 }
