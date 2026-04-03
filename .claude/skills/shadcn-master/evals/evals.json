@@ -1,0 +1,50 @@
+{
+  "skill_name": "shadcn-master",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add the shadcn dialog component to the project.",
+      "expected_output": "A dialog.tsx file in src/components/ui/ using the correct #/ alias, with the eslint disable comment at the top, using the radix-ui unified package, and no lucide-react imports.",
+      "files": [],
+      "expectations": [
+        "All imports use the '#/' alias (no '@/' alias anywhere in the file)",
+        "The file imports from 'radix-ui' (not from '@radix-ui/react-dialog' or similar scoped packages)",
+        "The file starts with the comment '/* eslint-disable import/consistent-type-specifier-style */'",
+        "The file contains no import from 'lucide-react'",
+        "Each major sub-component (DialogOverlay, DialogContent, DialogTitle, etc.) has a data-slot attribute on its root element",
+        "The cn() utility is imported from '#/lib/utils'",
+        "All exports are named exports (no default export)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create a SearchInput component — an input with a search icon on the left and a clear (X) button that appears when there's text. It should be reusable and accept a standard input onChange handler.",
+      "expected_output": "A SearchInput.tsx file in src/components/ (PascalCase) that uses shadcn Input, the #/ alias, @hugeicons/react for icons (not lucide-react), includes data-slot='search-input' on the root, and follows the CVA pattern if it has variants.",
+      "files": [],
+      "expectations": [
+        "The file is named SearchInput.tsx (PascalCase), not search-input.tsx",
+        "All imports use the '#/' alias (no '@/' alias anywhere in the file)",
+        "Icons are imported from '@hugeicons/react' and/or '@hugeicons/core-free-icons', not from 'lucide-react'",
+        "The file starts with '/* eslint-disable import/consistent-type-specifier-style */'",
+        "The root element has data-slot='search-input'",
+        "The component accepts an onChange prop typed as React.ComponentProps<'input'>['onChange'] or equivalent",
+        "The component is exported as a named export (not default)",
+        "The clear button only appears when there is text (conditional rendering based on value)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Add a 'warning' variant to the existing Button component in src/components/ui/button.tsx.",
+      "expected_output": "The button.tsx file updated with a 'warning' variant that follows the same opacity-layered pattern as the 'destructive' variant (tinted background, matching text, hover darkens, dark mode adjusts), without breaking any existing variants.",
+      "files": [],
+      "expectations": [
+        "The warning variant uses an opacity-layered Tailwind pattern (e.g. bg-amber-500/10 or bg-yellow-500/10), matching the destructive variant's style",
+        "The warning variant includes dark mode classes (dark:bg-... dark:hover:bg-... or similar)",
+        "All 6 original variants (default, outline, secondary, ghost, destructive, link) are still present and unchanged",
+        "The file still starts with '/* eslint-disable import/consistent-type-specifier-style */'",
+        "No new imports were added (warning doesn't require any new dependencies)",
+        "The buttonVariants export includes the new 'warning' value in its type"
+      ]
+    }
+  ]
+}
