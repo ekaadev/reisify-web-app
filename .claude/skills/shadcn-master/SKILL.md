@@ -12,11 +12,11 @@ This project uses **shadcn/ui v4** with the `radix-luma` style on top of **Tailw
 
 ## Decision Framework
 
-| Task | Workflow |
-|---|---|
-| Need a standard shadcn primitive (Dialog, Input, etc.) | [Install workflow](#installing-shadcn-components) |
-| Need a reusable component that composes primitives | [Custom component workflow](#creating-custom-components) |
-| Need a new variant or style on an existing component | [Modify workflow](#modifying-existing-components) |
+| Task                                                   | Workflow                                                 |
+| ------------------------------------------------------ | -------------------------------------------------------- |
+| Need a standard shadcn primitive (Dialog, Input, etc.) | [Install workflow](#installing-shadcn-components)        |
+| Need a reusable component that composes primitives     | [Custom component workflow](#creating-custom-components) |
+| Need a new variant or style on an existing component   | [Modify workflow](#modifying-existing-components)        |
 
 ---
 
@@ -25,15 +25,19 @@ This project uses **shadcn/ui v4** with the `radix-luma` style on top of **Tailw
 Get these right before writing a single line of component code:
 
 ### Import alias
+
 Always use `#/` — never `@/`.
+
 ```ts
-import { cn } from '#/lib/utils'         // ✅
-import { Button } from '#/components/ui/button'  // ✅
-import { cn } from '@/lib/utils'         // ❌
+import { cn } from '#/lib/utils' // ✅
+import { Button } from '#/components/ui/button' // ✅
+import { cn } from '@/lib/utils' // ❌
 ```
 
 ### Icon library
+
 Use `@hugeicons/react` + `@hugeicons/core-free-icons`. Never import from `lucide-react`.
+
 ```ts
 import { Search01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -43,23 +47,30 @@ import { HugeiconsIcon } from '@hugeicons/react'
 ```
 
 ### Radix primitives
+
 Use the unified `radix-ui` package, not the legacy scoped packages.
+
 ```ts
-import { Slot, Dialog } from 'radix-ui'  // ✅
-import * as Dialog from '@radix-ui/react-dialog'  // ❌
+import { Slot, Dialog } from 'radix-ui' // ✅
+import * as Dialog from '@radix-ui/react-dialog' // ❌
 ```
 
 ### ESLint header
+
 Every component file that uses type imports must start with this comment:
+
 ```ts
 /* eslint-disable import/consistent-type-specifier-style */
 ```
 
 ### TypeScript
+
 This project uses `verbatimModuleSyntax`. Use `import type` for type-only imports when they appear as separate import statements. In intersections and inline generics, the inline `type` keyword is fine.
 
 ### Package manager
+
 Always `bun`, never npm or pnpm.
+
 ```bash
 bunx shadcn@latest add dialog  # ✅
 npx shadcn@latest add dialog   # ❌
@@ -72,7 +83,9 @@ npx shadcn@latest add dialog   # ❌
 Two token systems coexist — use the right one for the right purpose.
 
 ### Shadcn semantic tokens (for component states)
+
 These respond to `.dark` class automatically. Use them for interactive, stateful UI:
+
 ```
 --background / --foreground
 --primary / --primary-foreground
@@ -85,7 +98,9 @@ These respond to `.dark` class automatically. Use them for interactive, stateful
 ```
 
 ### Brand tokens (for brand identity)
+
 These respond to `[data-theme='dark']` and `prefers-color-scheme`. Use them for brand-forward surfaces, decorative elements, and marketing UI:
+
 ```
 --sea-ink         (dark teal — primary text color for brand elements)
 --sea-ink-soft    (muted teal)
@@ -112,6 +127,7 @@ bunx shadcn@latest add <component-name>
 ```
 
 After install, open the generated file and verify:
+
 1. **Alias** — if the file uses `@/`, do a find-and-replace to `#/`
 2. **Icons** — if the file imported `lucide-react`, replace with `@hugeicons/react`
 3. **ESLint header** — add if missing
@@ -137,31 +153,27 @@ import { cn } from '#/lib/utils'
 // import { Button } from '#/components/ui/button'
 // import { Input } from '#/components/ui/input'
 
-const componentVariants = cva(
-  'base-classes-here',
-  {
-    variants: {
-      variant: {
-        default: '...',
-      },
-      size: {
-        default: '...',
-      },
+const componentVariants = cva('base-classes-here', {
+  variants: {
+    variant: {
+      default: '...',
     },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
+    size: {
+      default: '...',
     },
   },
-)
+  defaultVariants: {
+    variant: 'default',
+    size: 'default',
+  },
+})
 
 function ComponentName({
   className,
   variant,
   size,
   ...props
-}: React.ComponentProps<'div'> &
-  VariantProps<typeof componentVariants>) {
+}: React.ComponentProps<'div'> & VariantProps<typeof componentVariants>) {
   return (
     <div
       data-slot="component-name"
@@ -179,6 +191,7 @@ export { ComponentName, componentVariants }
 **`data-slot`** — always include on the root element. Use kebab-case matching the component name. This enables parent components to style children via CSS attribute selectors.
 
 **`data-variant` and `data-size`** — include these if the component has variant/size props:
+
 ```tsx
 <div
   data-slot="search-input"
@@ -189,6 +202,7 @@ export { ComponentName, componentVariants }
 ```
 
 **`asChild` support** — add when the component might need to render as a different element (links styled as buttons, etc.):
+
 ```tsx
 import { Slot } from 'radix-ui'
 
@@ -215,6 +229,7 @@ When adding a variant or changing styles on an existing component (e.g., the But
 4. Export any new variant type that consumers might need
 
 **Example — adding a `warning` variant to Button:**
+
 ```ts
 variant: {
   // ...existing variants...
@@ -231,15 +246,15 @@ Follow the same opacity-layered pattern as `destructive` — tinted background, 
 
 The project defines a stepped radius scale based on `--radius: 0.625rem`:
 
-| Token | Value | Use |
-|---|---|---|
-| `rounded-sm` | ~0.375rem | Small inputs, tags |
-| `rounded-md` | ~0.5rem | Cards, panels |
-| `rounded-lg` | 0.625rem | Standard surfaces |
-| `rounded-xl` | ~0.875rem | Modal overlays |
-| `rounded-2xl` | ~1.125rem | Large cards |
-| `rounded-3xl` | ~1.375rem | Feature sections |
-| `rounded-4xl` | ~1.625rem | Buttons (default) |
+| Token         | Value     | Use                |
+| ------------- | --------- | ------------------ |
+| `rounded-sm`  | ~0.375rem | Small inputs, tags |
+| `rounded-md`  | ~0.5rem   | Cards, panels      |
+| `rounded-lg`  | 0.625rem  | Standard surfaces  |
+| `rounded-xl`  | ~0.875rem | Modal overlays     |
+| `rounded-2xl` | ~1.125rem | Large cards        |
+| `rounded-3xl` | ~1.375rem | Feature sections   |
+| `rounded-4xl` | ~1.625rem | Buttons (default)  |
 
 The Button uses `rounded-4xl` — this is intentional, giving pill-shaped buttons. Match this when composing button-like elements.
 

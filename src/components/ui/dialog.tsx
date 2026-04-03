@@ -1,12 +1,10 @@
-/* eslint-disable import/consistent-type-specifier-style */
+ 
 import * as React from 'react'
 import { Dialog } from 'radix-ui'
 
 import { cn } from '#/lib/utils'
 
-function DialogRoot({
-  ...props
-}: React.ComponentProps<typeof Dialog.Root>) {
+function DialogRoot({ ...props }: React.ComponentProps<typeof Dialog.Root>) {
   return <Dialog.Root data-slot="dialog" {...props} />
 }
 
@@ -22,9 +20,7 @@ function DialogPortal({
   return <Dialog.Portal data-slot="dialog-portal" {...props} />
 }
 
-function DialogClose({
-  ...props
-}: React.ComponentProps<typeof Dialog.Close>) {
+function DialogClose({ ...props }: React.ComponentProps<typeof Dialog.Close>) {
   return <Dialog.Close data-slot="dialog-close" {...props} />
 }
 
@@ -92,7 +88,10 @@ function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn('flex flex-col gap-1.5 text-center sm:text-left', className)}
+      className={cn(
+        'flex flex-col gap-1.5 text-center sm:text-left',
+        className,
+      )}
       {...props}
     />
   )
@@ -118,7 +117,10 @@ function DialogTitle({
   return (
     <Dialog.Title
       data-slot="dialog-title"
-      className={cn('text-lg leading-none font-semibold tracking-tight', className)}
+      className={cn(
+        'text-lg leading-none font-semibold tracking-tight',
+        className,
+      )}
       {...props}
     />
   )

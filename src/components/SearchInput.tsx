@@ -1,12 +1,11 @@
-/* eslint-disable import/consistent-type-specifier-style */
+ 
 import * as React from 'react'
 import { Cancel01Icon, Search01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 
 import { cn } from '#/lib/utils'
 
-interface SearchInputProps
-  extends Omit<React.ComponentProps<'input'>, 'type'> {
+interface SearchInputProps extends Omit<React.ComponentProps<'input'>, 'type'> {
   onClear?: () => void
 }
 

@@ -14,16 +14,16 @@ TanStack Start is a full-stack React framework built on TanStack Router. Its key
 
 Before writing code, pick the right pattern:
 
-| Scenario | Pattern |
-|---|---|
-| Page needs data at render time (SSR) | `loader` in `createFileRoute` |
+| Scenario                                    | Pattern                                   |
+| ------------------------------------------- | ----------------------------------------- |
+| Page needs data at render time (SSR)        | `loader` in `createFileRoute`             |
 | Data needs client-side caching / refetching | Loader + TanStack Query `ensureQueryData` |
-| Form submission or mutation | `createServerFn({ method: 'POST' })` |
-| REST/webhook endpoint | Server route handler in `createFileRoute` |
-| Cross-cutting concern (auth, logging) | `createMiddleware` |
-| One-off server-side read | `createServerFn({ method: 'GET' })` |
-| Public config (API URLs) | `import.meta.env.VITE_*` |
-| Secret config (DB, tokens) | `process.env.*` (server only) |
+| Form submission or mutation                 | `createServerFn({ method: 'POST' })`      |
+| REST/webhook endpoint                       | Server route handler in `createFileRoute` |
+| Cross-cutting concern (auth, logging)       | `createMiddleware`                        |
+| One-off server-side read                    | `createServerFn({ method: 'GET' })`       |
+| Public config (API URLs)                    | `import.meta.env.VITE_*`                  |
+| Secret config (DB, tokens)                  | `process.env.*` (server only)             |
 
 ---
 
@@ -107,7 +107,7 @@ Server functions are typed RPC calls — they run only on the server but can be 
 import { createServerFn } from '@tanstack/react-start'
 
 export const getPost = createServerFn({ method: 'GET' })
-  .validator((postId: string) => postId)   // validate/transform input
+  .validator((postId: string) => postId) // validate/transform input
   .handler(async ({ data: postId }) => {
     return await db.post.findUnique({ where: { id: postId } })
   })
@@ -184,6 +184,7 @@ function PostDetail() {
 ```
 
 **When to use loader-only vs loader + Query:**
+
 - Loader-only: data is static for the page visit, no refetch needed
 - Loader + Query: data can change, user can trigger refetch, or other components need the same data
 
@@ -197,12 +198,13 @@ Middleware runs on every matching server function call. Use it for auth, logging
 import { createMiddleware } from '@tanstack/react-start'
 
 // Auth middleware — runs server-side, enriches context
-const authMiddleware = createMiddleware({ type: 'function' })
-  .server(async ({ next }) => {
+const authMiddleware = createMiddleware({ type: 'function' }).server(
+  async ({ next }) => {
     const session = await getSession()
     if (!session.userId) throw new Error('Unauthorized')
     return next({ context: { user: await getUser(session.userId) } })
-  })
+  },
+)
 
 // Attach to a server function
 export const getMyPosts = createServerFn({ method: 'GET' })
