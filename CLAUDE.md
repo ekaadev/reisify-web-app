@@ -34,3 +34,11 @@ This is a **TanStack Start** (SSR-enabled React framework) app using file-based 
 **TypeScript:** Strict mode with `noUnusedLocals`, `noUnusedParameters`, and `verbatimModuleSyntax`. Module resolution is `bundler`.
 
 **ESLint:** Uses `@tanstack/eslint-config` as the base. Import cycle/order rules and some TS rules are disabled (see `eslint.config.js`).
+
+**Code style (Prettier):** No semicolons, single quotes, trailing commas.
+
+**Components:** Custom components in `src/components/`, shadcn/ui components in `src/components/ui/`. Use `cn` from `#/lib/utils` for class merging. shadcn components require `/* eslint-disable import/consistent-type-specifier-style */` at the top of the file.
+
+**Note:**
+
+- After every change, run: bun test && bun typecheck If tests fail, fix them before considering the task done.
