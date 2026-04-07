@@ -1,0 +1,1735 @@
+openapi: 3.1.0
+info:
+  title: Reisify API
+  description: API specification for Reisify — an interactive Q&A and polling platform. See api-spec.md for WebSocket documentation.
+  version: 1.0.0
+servers:
+  - url: 'http://localhost:3000/api/v1'
+    description: Development server
+
+tags:
+  - name: User
+    description: User authentication and registration
+  - name: Room
+    description: Room management
+  - name: Participant
+    description: Participant operations
+  - name: Message
+    description: Live chat messages
+  - name: Leaderboard
+    description: XP ranking and leaderboard
+  - name: Poll
+    description: Polling operations
+  - name: XPTransaction
+    description: XP transaction history
+  - name: Question
+    description: Q&A question operations
+  - name: Activity
+    description: Unified activity timeline
+
+
+
+paths:
+  /users/register:
+    post:
+      tags:
+        - User
+      summary: Register a new presenter
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponseWrapper'
+        '400':
+          description: Invalid request body
+        '409':
+          description: Email or username already in use
+
+  /users/login:
+    post:
+      tags:
+        - User
+      summary: Login user
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginUserRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponseWrapper'
+        '401':
+          description: Invalid credentials
+
+  /users/logout:
+    post:
+      tags:
+        - User
+      summary: Logout user and invalidate token
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponseWrapper'
+        '401':
+          description: Unauthorized
+
+
+  /users/anonymous:
+    post:
+      tags:
+        - User
+      summary: Anonymous join to a room
+      operationId: anonymousJoin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnonymousUserRequest'
+      responses:
+        '200':
+          description: Anonymous join successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinRoomResponseWrapper'
+        '400':
+          description: Room is closed or invalid request
+        '404':
+          description: Room not found
+
+  /rooms:
+    post:
+      tags:
+        - Room
+      summary: Create a new room
+      operationId: createRoom
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoomRequest'
+      responses:
+        '201':
+          description: Room created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateRoomResponseWrapper'
+        '400':
+          description: Invalid request body
+
+  /users/me/rooms:
+    get:
+      tags:
+        - Room
+      summary: Get rooms owned by presenter
+      operationId: getMyRooms
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of rooms
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomListResponseWrapper'
+
+  /rooms/{room_code}:
+    get:
+      tags:
+        - Room
+      summary: Get room detail by room code
+      operationId: getRoomDetail
+      parameters:
+        - name: room_code
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 6
+      responses:
+        '200':
+          description: Room detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomDetailResponseWrapper'
+        '404':
+          description: Room not found
+
+  /rooms/{room_id}/close:
+    patch:
+      tags:
+        - Room
+      summary: Close a room
+      operationId: closeRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseRoomRequest'
+      responses:
+        '200':
+          description: Room closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateToCloseRoomWrapper'
+        '404':
+          description: Room not found
+
+  /rooms/{room_id}:
+    delete:
+      tags:
+        - Room
+      summary: Delete a room (soft delete, presenter only, room must be closed)
+      operationId: deleteRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Room deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponseWrapper'
+        '400':
+          description: Room must be closed before deletion
+        '404':
+          description: Room not found
+
+  /rooms/{room_id}/announcement:
+    post:
+      tags:
+        - Room
+      summary: Send announcement to all participants (presenter only)
+      operationId: sendAnnouncement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendAnnouncementRequest'
+      responses:
+        '200':
+          description: Announcement sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnouncementResponseWrapper'
+        '400':
+          description: Invalid request body
+        '403':
+          description: Not authorized (presenter only)
+        '404':
+          description: Room not found
+
+  /rooms/{room_id}/xp-transactions:
+    get:
+      tags:
+        - XPTransaction
+      summary: Get XP transactions history for participant
+      operationId: getXPTransactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: XP transactions list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XPTransactionsResponseWrapper'
+        '404':
+          description: Room not found
+
+  /rooms/{room_code}/join:
+    post:
+      tags:
+        - Participant
+      summary: Join a room
+      operationId: joinRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_code
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 6
+            maxLength: 6
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinRoomRequest'
+      responses:
+        '200':
+          description: Joined room successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinRoomResponseWrapper'
+        '400':
+          description: Room is closed or invalid request
+        '404':
+          description: Room not found
+
+  /rooms/{room_id}/participants:
+    get:
+      tags:
+        - Participant
+      summary: Get participants list
+      operationId: getParticipants
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        '200':
+          description: List of participants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantListResponseWrapper'
+
+  /rooms/{room_id}/messages:
+    post:
+      tags:
+        - Message
+      summary: Send a message
+      operationId: sendMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponseWrapper'
+    get:
+      tags:
+        - Message
+      summary: Get messages
+      operationId: getMessages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: before
+          in: query
+          description: Unix timestamp for cursor-based pagination
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageListResponseWrapper'
+
+  /rooms/{room_id}/leaderboard:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get leaderboard
+      operationId: getLeaderboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Leaderboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponseWrapper'
+
+  # Poll endpoints
+  /rooms/{room_id}/polls:
+    post:
+      tags:
+        - Poll
+      summary: Create a new poll (Presenter only)
+      operationId: createPoll
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePollRequest'
+      responses:
+        '201':
+          description: Poll created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePollResponseWrapper'
+        '400':
+          description: Invalid request body
+        '403':
+          description: Not authorized (presenter only)
+
+    get:
+      tags:
+        - Poll
+      summary: Get poll history
+      operationId: getPollHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, closed, all]
+            default: all
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Poll history list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollHistoryResponseWrapper'
+
+  /rooms/{room_id}/polls/active:
+    get:
+      tags:
+        - Poll
+      summary: Get active polls
+      operationId: getActivePolls
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Active polls list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetActivePollResponseWrapper'
+
+  /polls/{poll_id}/vote:
+    post:
+      tags:
+        - Poll
+      summary: Submit vote on a poll
+      operationId: submitVote
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: poll_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitVoteRequest'
+      responses:
+        '200':
+          description: Vote submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitVoteResponseWrapper'
+        '400':
+          description: Invalid request or poll not active
+        '409':
+          description: Already voted on this poll
+
+  /rooms/{room_id}/questions:
+    post:
+      tags:
+        - Question
+      summary: Submit a question
+      operationId: submitQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitQuestionRequest'
+      responses:
+        '201':
+          description: Question submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitQuestionResponseWrapper'
+        '400':
+          description: Invalid request body
+        '403':
+          description: Not a member of this room
+    get:
+      tags:
+        - Question
+      summary: List questions for a room
+      operationId: listQuestions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, answered, highlighted]
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [recent, upvotes, validated]
+            default: upvotes
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionListResponseWrapper'
+        '403':
+          description: Not a member of this room
+
+  /questions/{question_id}/upvote:
+    post:
+      tags:
+        - Question
+      summary: Upvote a question
+      operationId: upvoteQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Upvote recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpvoteResponseWrapper'
+        '400':
+          description: Must be joined to a room first
+        '404':
+          description: Question not found
+        '409':
+          description: Already upvoted
+    delete:
+      tags:
+        - Question
+      summary: Remove an upvote from a question
+      operationId: removeUpvote
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Upvote removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveUpvoteResponseWrapper'
+        '400':
+          description: Must be joined to a room first
+        '404':
+          description: Upvote not found
+
+  /questions/{question_id}/validate:
+    patch:
+      tags:
+        - Question
+      summary: Validate a question (presenter only)
+      operationId: validateQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateQuestionRequest'
+      responses:
+        '200':
+          description: Question validated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateQuestionResponseWrapper'
+        '403':
+          description: Not authorized (presenter only)
+        '404':
+          description: Question not found
+
+  /polls/{poll_id}/close:
+    patch:
+      tags:
+        - Poll
+      summary: Close a poll (Presenter only)
+      operationId: closePoll
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: poll_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Poll closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClosePollResponseWrapper'
+        '400':
+          description: Poll is not active
+        '403':
+          description: Not authorized (presenter only)
+        '404':
+          description: Poll not found
+
+  /rooms/{room_id}/timeline:
+    get:
+      tags:
+        - Activity
+      summary: Get unified activity timeline for a room
+      operationId: getTimeline
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: before
+          in: query
+          description: RFC3339 timestamp cursor — load items older than this
+          schema:
+            type: string
+        - name: after
+          in: query
+          description: RFC3339 timestamp cursor — load items newer than this
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Timeline items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTimelineResponseWrapper'
+        '403':
+          description: Not a member of this room
+        '404':
+          description: Room not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Request Schemas
+    RegisterUserRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+        - role
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+        role:
+          type: string
+          enum: [presenter, admin]
+
+    LoginUserRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          maxLength: 100
+        password:
+          type: string
+          maxLength: 100
+
+    AnonymousUserRequest:
+      type: object
+      required:
+        - room_code
+        - display_name
+      properties:
+        room_code:
+          type: string
+          minLength: 6
+          maxLength: 6
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 30
+
+    CreateRoomRequest:
+      type: object
+      required:
+        - title
+        - presenter_id
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 255
+        presenter_id:
+          type: integer
+
+    CloseRoomRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [closed]
+
+    SendAnnouncementRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    JoinRoomRequest:
+      type: object
+      required:
+        - username
+        - room_code
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        display_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        room_code:
+          type: string
+          minLength: 6
+          maxLength: 6
+
+    SendMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    SubmitQuestionRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    ValidateQuestionRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [answered, highlighted]
+
+    # Response Schemas
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        token:
+          type: string
+
+    AuthResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/AuthResponse'
+
+    ParticipantResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        room_id:
+          type: integer
+        display_name:
+          type: string
+        xp_score:
+          type: integer
+        is_anonymous:
+          type: boolean
+        joined_at:
+          type: string
+          format: date-time
+
+    JoinRoomResponse:
+      type: object
+      properties:
+        participant:
+          $ref: '#/components/schemas/ParticipantResponse'
+        token:
+          type: string
+
+    JoinRoomResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/JoinRoomResponse'
+
+    RoomResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        room_code:
+          type: string
+        title:
+          type: string
+        presenter_id:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+          null: true
+
+    CreateRoomResponse:
+      type: object
+      properties:
+        room:
+          $ref: '#/components/schemas/RoomResponse'
+        participant_id:
+          type: integer
+
+    CreateRoomResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CreateRoomResponse'
+
+    PresenterInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+
+    RoomStats:
+      type: object
+      properties:
+        total_participants:
+          type: integer
+        total_questions:
+          type: integer
+        total_polls:
+          type: integer
+        active_poll_id:
+          type: integer
+          nullable: true
+
+    RoomDetailResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        room_code:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        presenter:
+          $ref: '#/components/schemas/PresenterInfo'
+        stats:
+          $ref: '#/components/schemas/RoomStats'
+        created_at:
+          type: string
+          format: date-time
+
+    RoomDetailResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/RoomDetailResponse'
+
+    UpdateToCloseRoom:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+        closed_at:
+          type: string
+          format: date-time
+
+    UpdateToCloseRoomWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/UpdateToCloseRoom'
+
+    AnnouncementResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        announced_at:
+          type: string
+          format: date-time
+
+    AnnouncementResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/AnnouncementResponse'
+
+    RoomListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        room_code:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        participants_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    RoomListResponse:
+      type: object
+      properties:
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomListItem'
+
+    RoomListResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/RoomListResponse'
+
+    ParticipantListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        display_name:
+          type: string
+        xp_score:
+          type: integer
+        is_anonymous:
+          type: boolean
+
+    ParticipantListResponse:
+      type: object
+      properties:
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantListItem'
+
+    ParticipantListResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ParticipantListResponse'
+        paging:
+          $ref: '#/components/schemas/PaginationResponse'
+
+    PaginationResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        total_item:
+          type: integer
+        total_page:
+          type: integer
+
+    ParticipantInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        display_name:
+          type: string
+
+    MessageResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        room_id:
+          type: integer
+        participant:
+          $ref: '#/components/schemas/ParticipantInfo'
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    MessageResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/MessageResponse'
+
+    MessageListResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageResponse'
+        has_more:
+          type: boolean
+
+    MessageListResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/MessageListResponse'
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        participant:
+          $ref: '#/components/schemas/ParticipantInfo'
+        xp_score:
+          type: integer
+        is_anonymous:
+          type: boolean
+
+    MyRank:
+      type: object
+      properties:
+        rank:
+          type: integer
+        xp_score:
+          type: integer
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        leaderboard:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+        my_rank:
+          $ref: '#/components/schemas/MyRank'
+        total_participants:
+          type: integer
+
+    LeaderboardResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/LeaderboardResponse'
+
+    # Poll Schemas
+    CreatePollRequest:
+      type: object
+      required:
+        - question
+        - options
+      properties:
+        question:
+          type: string
+          minLength: 5
+          maxLength: 500
+        options:
+          type: array
+          minItems: 2
+          maxItems: 10
+          items:
+            type: string
+            minLength: 1
+            maxLength: 255
+
+    SubmitVoteRequest:
+      type: object
+      required:
+        - option_id
+      properties:
+        option_id:
+          type: integer
+
+    PollOptionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        poll_id:
+          type: integer
+        option_text:
+          type: string
+        vote_count:
+          type: integer
+        percentage:
+          type: number
+        order:
+          type: integer
+
+    PollResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        room_id:
+          type: integer
+        question:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, closed]
+        total_votes:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        activated_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollOptionResponse'
+        has_voted:
+          type: boolean
+        voted_option:
+          type: integer
+
+    CreatePollResponse:
+      type: object
+      properties:
+        poll:
+          $ref: '#/components/schemas/PollResponse'
+
+    CreatePollResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CreatePollResponse'
+
+    GetActivePollResponse:
+      type: object
+      properties:
+        polls:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollResponse'
+
+    GetActivePollResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/GetActivePollResponse'
+
+    SubmitVoteResponse:
+      type: object
+      properties:
+        response:
+          type: object
+          properties:
+            id:
+              type: integer
+            poll_id:
+              type: integer
+            participant_id:
+              type: integer
+            poll_option_id:
+              type: integer
+            created_at:
+              type: string
+              format: date-time
+        updated_results:
+          type: object
+          properties:
+            poll_id:
+              type: integer
+            total_votes:
+              type: integer
+            options:
+              type: array
+              items:
+                $ref: '#/components/schemas/PollOptionResponse'
+        xp_earned:
+          type: object
+          properties:
+            points:
+              type: integer
+            new_total:
+              type: integer
+
+    SubmitVoteResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/SubmitVoteResponse'
+
+    ClosePollResponse:
+      type: object
+      properties:
+        poll:
+          type: object
+          properties:
+            id:
+              type: integer
+            status:
+              type: string
+            closed_at:
+              type: string
+              format: date-time
+            final_results:
+              type: object
+              properties:
+                total_votes:
+                  type: integer
+                options:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PollOptionResponse'
+
+    ClosePollResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ClosePollResponse'
+
+    PollHistoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+        status:
+          type: string
+        total_votes:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+
+    PollHistoryResponse:
+      type: object
+      properties:
+        polls:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollHistoryItem'
+        total:
+          type: integer
+
+    PollHistoryResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/PollHistoryResponse'
+
+    # Question Schemas
+    XPEarned:
+      type: object
+      properties:
+        points:
+          type: integer
+        new_total:
+          type: integer
+
+    QuestionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        room_id:
+          type: integer
+        participant_id:
+          type: integer
+        participant:
+          $ref: '#/components/schemas/ParticipantInfo'
+        content:
+          type: string
+        upvote_count:
+          type: integer
+        status:
+          type: string
+          enum: [pending, answered, highlighted]
+        is_validated_by_presenter:
+          type: boolean
+        xp_awarded:
+          type: integer
+        has_voted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    SubmitQuestionResponse:
+      type: object
+      properties:
+        question:
+          $ref: '#/components/schemas/QuestionResponse'
+        xp_earned:
+          $ref: '#/components/schemas/XPEarned'
+
+    SubmitQuestionResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/SubmitQuestionResponse'
+
+    QuestionPaging:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    QuestionListResponse:
+      type: object
+      properties:
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionResponse'
+        paging:
+          $ref: '#/components/schemas/QuestionPaging'
+
+    QuestionListResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/QuestionListResponse'
+
+    VoteResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        question_id:
+          type: integer
+        participant_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    QuestionUpvoteInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        upvote_count:
+          type: integer
+
+    XPEarnedForUpvote:
+      type: object
+      properties:
+        recipient_participant_id:
+          type: integer
+        points:
+          type: integer
+        source:
+          type: string
+
+    UpvoteResponse:
+      type: object
+      properties:
+        vote:
+          $ref: '#/components/schemas/VoteResponse'
+        question:
+          $ref: '#/components/schemas/QuestionUpvoteInfo'
+        xp_earned:
+          $ref: '#/components/schemas/XPEarnedForUpvote'
+
+    UpvoteResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/UpvoteResponse'
+
+    RemoveUpvoteResponse:
+      type: object
+      properties:
+        question:
+          $ref: '#/components/schemas/QuestionUpvoteInfo'
+
+    RemoveUpvoteResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/RemoveUpvoteResponse'
+
+    QuestionValidateInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [answered, highlighted]
+        is_validated_by_presenter:
+          type: boolean
+
+    XPAwardedInfo:
+      type: object
+      properties:
+        participant_id:
+          type: integer
+        points:
+          type: integer
+        new_total:
+          type: integer
+
+    ValidateQuestionResponse:
+      type: object
+      properties:
+        question:
+          $ref: '#/components/schemas/QuestionValidateInfo'
+        xp_awarded:
+          $ref: '#/components/schemas/XPAwardedInfo'
+
+    ValidateQuestionResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ValidateQuestionResponse'
+
+    # XP Transaction Schemas
+    XPTransactionItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        points:
+          type: integer
+        source_type:
+          type: string
+        source_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    XPTransactionsResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/XPTransactionItem'
+        total_xp:
+          type: integer
+        total:
+          type: integer
+
+    XPTransactionsResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/XPTransactionsResponse'
+
+    # Generic success message schema
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    SuccessResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/SuccessResponse'
+
+    TimelineItem:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [message, question, poll, announcement]
+        id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        data:
+          type: object
+          description: Payload varies by type — message, question, poll, or announcement data
+
+    GetTimelineResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineItem'
+        has_more:
+          type: boolean
+        oldest_at:
+          type: string
+          description: RFC3339 cursor for loading older items
+          nullable: true
+        newest_at:
+          type: string
+          description: RFC3339 cursor for loading newer items
+          nullable: true
+
+    GetTimelineResponseWrapper:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/GetTimelineResponse'
+
